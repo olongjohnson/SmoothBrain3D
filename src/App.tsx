@@ -1040,6 +1040,39 @@ export default function App() {
                 </div>
               )}
 
+              {/* --- Parts List Section --- */}
+              <button onClick={() => toggleSection('parts')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Box className="w-3 h-3 text-purple-400" /> Parts</span>
+                <span className="text-gray-600">{openSection === 'parts' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'parts' && (
+                <div className="px-1 pb-2 grid grid-cols-2 gap-1">
+                  {(() => {
+                    const parts: { name: string, obj: THREE.Object3D }[] = [];
+                    if (_catGroupRef) {
+                      _catGroupRef.traverse((o) => {
+                        if (o.userData?.entity && o.userData?.name) {
+                          parts.push({ name: o.userData.name, obj: o });
+                        }
+                      });
+                    }
+                    return parts.map(({ name, obj }) => (
+                      <button
+                        key={name}
+                        onClick={() => { setSelectedMesh(obj); setMenuOpen(false); }}
+                        className={`px-2 py-2 rounded-lg text-[9px] uppercase font-bold transition-all truncate ${
+                          selectedMesh === obj
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-400 bg-white/5 active:bg-white/10'
+                        }`}
+                      >
+                        {name.replace(/_/g, ' ')}
+                      </button>
+                    ));
+                  })()}
+                </div>
+              )}
+
               {/* --- Weapon Snap Section --- */}
               <button onClick={() => toggleSection('snap')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
                 <span className="flex items-center gap-2"><Link className="w-3 h-3 text-blue-400" /> Weapon Snap</span>
