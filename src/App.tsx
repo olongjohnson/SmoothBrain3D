@@ -3,37 +3,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { Suspense, useRef, useState, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { 
-  OrbitControls, 
-  PerspectiveCamera, 
-  Environment, 
-  Float, 
+import React, { Suspense, useRef, useState, useMemo, useCallback } from 'react';
+import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
+import {
+  OrbitControls,
+  PerspectiveCamera,
+  Environment,
+  Float,
   ContactShadows,
   Html,
   Text,
   MeshWobbleMaterial,
-  Sparkles
+  Sparkles,
+  TransformControls
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
 import GripSystemDemo from './archive/GripSystem';
-import { 
-  Sword, 
-  Shield, 
-  User, 
-  Sparkle, 
-  Camera, 
-  RotateCcw, 
-  Crosshair, 
-  Settings2, 
-  Link, 
+import {
+  Sword,
+  Shield,
+  User,
+  Sparkle,
+  Camera,
+  RotateCcw,
+  Crosshair,
+  Settings2,
+  Link,
   Unlink,
   Box,
   Settings,
   Copy,
-  Check
+  Check,
+  Move,
+  Maximize
 } from 'lucide-react';
 
 // --- Types ---
@@ -591,55 +594,95 @@ const CatModel = ({
   );
 };
 
-const Scene = ({ 
-  accessory, 
-  animation, 
+const Scene = ({
+  accessory,
+  animation,
   isSnapped,
   weaponOffset,
   handOffset,
   armLength,
-  narutoArmOffset
-}: { 
-  accessory: string, 
-  animation: string, 
+  narutoArmOffset,
+  selectedMesh,
+  setSelectedMesh,
+  transformMode,
+}: {
+  accessory: string,
+  animation: string,
   isSnapped: boolean,
   weaponOffset: Offset,
   handOffset: Offset,
   armLength: number,
-  narutoArmOffset: Offset
+  narutoArmOffset: Offset,
+  selectedMesh: THREE.Object3D | null,
+  setSelectedMesh: (m: THREE.Object3D | null) => void,
+  transformMode: "translate" | "rotate" | "scale",
 }) => {
+  const orbitRef = useRef<any>(null);
+  const transformRef = useRef<any>(null);
+
+  const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    // Walk up to find the nearest mesh (not a group)
+    let target: THREE.Object3D | null = e.object;
+    while (target && !(target instanceof THREE.Mesh)) {
+      target = target.parent;
+    }
+    if (target && target instanceof THREE.Mesh) {
+      setSelectedMesh(target);
+    }
+  }, [setSelectedMesh]);
+
+  const handlePointerMissed = useCallback(() => {
+    setSelectedMesh(null);
+  }, [setSelectedMesh]);
+
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 3, 6]} fov={50} />
-      <OrbitControls 
-        enablePan={false} 
-        minDistance={3} 
-        maxDistance={12} 
+      <OrbitControls
+        ref={orbitRef}
+        enablePan={false}
+        minDistance={3}
+        maxDistance={12}
         maxPolarAngle={Math.PI / 2.1}
-        autoRotate={animation === "idle"}
+        autoRotate={animation === "idle" && !selectedMesh}
         autoRotateSpeed={0.5}
       />
-      
+
       <ambientLight intensity={0.5} />
       <spotLight position={[10, 15, 10]} angle={0.3} penumbra={1} intensity={2} castShadow />
       <pointLight position={[-10, 5, -10]} intensity={0.5} />
       <pointLight position={[0, 5, 5]} intensity={0.5} color="#3b82f6" />
 
-      <Float 
-        speed={animation === "idle" ? 2 : 0} 
-        rotationIntensity={animation === "idle" ? 0.5 : 0} 
+      <Float
+        speed={animation === "idle" ? 2 : 0}
+        rotationIntensity={animation === "idle" ? 0.5 : 0}
         floatIntensity={animation === "idle" ? 0.4 : 0}
       >
-        <CatModel 
-          accessory={accessory} 
-          animation={animation} 
-          isSnapped={isSnapped} 
-          weaponOffset={weaponOffset}
-          handOffset={handOffset}
-          armLength={armLength}
-          narutoArmOffset={narutoArmOffset}
-        />
+        <group onPointerDown={handlePointerDown} onPointerMissed={handlePointerMissed}>
+          <CatModel
+            accessory={accessory}
+            animation={animation}
+            isSnapped={isSnapped}
+            weaponOffset={weaponOffset}
+            handOffset={handOffset}
+            armLength={armLength}
+            narutoArmOffset={narutoArmOffset}
+          />
+        </group>
       </Float>
+
+      {/* TransformControls on selected mesh */}
+      {selectedMesh && (
+        <TransformControls
+          ref={transformRef}
+          object={selectedMesh}
+          mode={transformMode}
+          size={0.6}
+          onMouseDown={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
+          onMouseUp={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
+        />
+      )}
 
       <Sparkles count={50} scale={8} size={2} speed={0.3} opacity={0.1} color="#3b82f6" />
 
@@ -705,6 +748,8 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const [selectedMesh, setSelectedMesh] = useState<THREE.Object3D | null>(null);
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "scale">("translate");
 
   const [weaponOffset, setWeaponOffset] = useState<Offset>({
     pos: [0.04, 0.11, -0.11],
@@ -770,6 +815,9 @@ export default function App() {
               handOffset={handOffset}
               armLength={armLength}
               narutoArmOffset={narutoArmOffset}
+              selectedMesh={selectedMesh}
+              setSelectedMesh={setSelectedMesh}
+              transformMode={transformMode}
             />
           </Suspense>
         </Canvas>
@@ -818,6 +866,33 @@ export default function App() {
       >
         {isSnapped ? '🔗 Snapped' : '🔫 Snap Guns'}
       </button>
+
+      {/* Transform toolbar — appears when a mesh part is selected */}
+      {selectedMesh && !menuOpen && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 pointer-events-auto">
+          {([["translate", Move, "Move"], ["rotate", RotateCcw, "Rotate"], ["scale", Maximize, "Scale"]] as const).map(([mode, Icon, label]) => (
+            <button
+              key={mode}
+              onClick={() => setTransformMode(mode)}
+              title={label}
+              className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
+                transformMode === mode
+                  ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.4)]'
+                  : 'text-white/60 active:bg-white/10'
+              }`}
+            >
+              <Icon size={18} />
+            </button>
+          ))}
+          <div className="w-px h-7 bg-white/10 mx-1" />
+          <button
+            onClick={() => setSelectedMesh(null)}
+            className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-gray-400 active:bg-white/10"
+          >
+            Deselect
+          </button>
+        </div>
+      )}
 
       {/* Slide-out menu panel */}
       <AnimatePresence>
