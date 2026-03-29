@@ -36,13 +36,54 @@ import {
   Copy,
   Check,
   Move,
-  Maximize
+  Maximize,
+  Save,
+  RotateCw
 } from 'lucide-react';
 
 // --- Types ---
 interface Offset {
   pos: [number, number, number];
   rot: [number, number, number];
+}
+
+// Module-level ref so App can access the cat group for save/load
+let _catGroupRef: THREE.Group | null = null;
+
+const SAVE_KEY = 'smoothbrain3d_layout';
+
+function saveLayout() {
+  if (!_catGroupRef) return;
+  const data: Record<string, { pos: number[], rot: number[], scale: number[] }> = {};
+  _catGroupRef.traverse((obj) => {
+    if (obj.userData?.entity && obj.userData?.name) {
+      data[obj.userData.name] = {
+        pos: [obj.position.x, obj.position.y, obj.position.z],
+        rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+        scale: [obj.scale.x, obj.scale.y, obj.scale.z],
+      };
+    }
+  });
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  return data;
+}
+
+function loadLayout() {
+  if (!_catGroupRef) return false;
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return false;
+  try {
+    const data = JSON.parse(raw) as Record<string, { pos: number[], rot: number[], scale: number[] }>;
+    _catGroupRef.traverse((obj) => {
+      if (obj.userData?.entity && obj.userData?.name && data[obj.userData.name]) {
+        const d = data[obj.userData.name];
+        obj.position.set(d.pos[0], d.pos[1], d.pos[2]);
+        obj.rotation.set(d.rot[0], d.rot[1], d.rot[2]);
+        obj.scale.set(d.scale[0], d.scale[1], d.scale[2]);
+      }
+    });
+    return true;
+  } catch { return false; }
 }
 
 // --- Components ---
@@ -619,6 +660,15 @@ const Scene = ({
 }) => {
   const orbitRef = useRef<any>(null);
   const transformRef = useRef<any>(null);
+  const catGroupRef = useRef<THREE.Group>(null);
+
+  // Sync module-level ref for save/load
+  const setCatGroup = useCallback((node: THREE.Group | null) => {
+    catGroupRef.current = node;
+    _catGroupRef = node;
+    // Auto-load saved layout on mount
+    if (node) setTimeout(() => loadLayout(), 100);
+  }, []);
 
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
@@ -667,7 +717,7 @@ const Scene = ({
         rotationIntensity={animation === "idle" ? 0.5 : 0}
         floatIntensity={animation === "idle" ? 0.4 : 0}
       >
-        <group onPointerDown={handlePointerDown} onPointerMissed={handlePointerMissed}>
+        <group ref={setCatGroup} onPointerDown={handlePointerDown} onPointerMissed={handlePointerMissed}>
           <CatModel
             accessory={accessory}
             animation={animation}
@@ -758,6 +808,7 @@ export default function App() {
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [selectedMesh, setSelectedMesh] = useState<THREE.Object3D | null>(null);
   const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "scale">("translate");
+  const [saved, setSaved] = useState(false);
 
   const [weaponOffset, setWeaponOffset] = useState<Offset>({
     pos: [0.04, 0.11, -0.11],
@@ -867,6 +918,13 @@ export default function App() {
                 className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-gray-400 active:bg-white/10"
               >
                 Deselect
+              </button>
+              <button
+                onClick={() => { saveLayout(); setSaved(true); setTimeout(() => setSaved(false), 1500); }}
+                className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-green-400 active:bg-white/10 flex items-center gap-1"
+              >
+                <Save size={14} />
+                {saved ? 'Saved!' : 'Save'}
               </button>
             </div>
           )}
@@ -1070,6 +1128,36 @@ export default function App() {
               )}
 
               {/* --- Export Section --- */}
+              {/* --- Layout Save/Load Section --- */}
+              <button onClick={() => toggleSection('layout')} className="w-full flex items-center justify-between px-3 py-2 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Save className="w-3 h-3 text-green-500" /> Layout</span>
+                <span className="text-gray-600">{openSection === 'layout' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'layout' && (
+                <div className="px-2 pb-3 flex flex-col gap-1.5">
+                  <button
+                    onClick={() => { saveLayout(); setSaved(true); setTimeout(() => setSaved(false), 1500); }}
+                    className="w-full py-2 bg-green-600/20 text-green-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-green-600/30 flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-3 h-3" />
+                    {saved ? 'Saved!' : 'Save Positions'}
+                  </button>
+                  <button
+                    onClick={() => { loadLayout(); }}
+                    className="w-full py-2 bg-blue-600/20 text-blue-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-blue-600/30 flex items-center justify-center gap-2"
+                  >
+                    <RotateCw className="w-3 h-3" />
+                    Load Saved
+                  </button>
+                  <button
+                    onClick={() => { localStorage.removeItem(SAVE_KEY); window.location.reload(); }}
+                    className="w-full py-2 bg-red-600/20 text-red-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-red-600/30 flex items-center justify-center gap-2"
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+              )}
+
               <button onClick={() => toggleSection('export')} className="w-full flex items-center justify-between px-3 py-2 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
                 <span className="flex items-center gap-2"><Copy className="w-3 h-3 text-green-500" /> Export Data</span>
                 <span className="text-gray-600">{openSection === 'export' ? '−' : '+'}</span>
