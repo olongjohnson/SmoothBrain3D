@@ -678,23 +678,21 @@ const Scene = ({
   );
 };
 
-const ControlSlider = ({ label, value, min, max, step, onChange }: { 
-  label: string, value: number, min: number, max: number, step: number, onChange: (v: number) => void 
+const ControlSlider = ({ label, value, min, max, step, onChange }: {
+  label: string, value: number, min: number, max: number, step: number, onChange: (v: number) => void
 }) => (
-  <div className="flex flex-col gap-1 mb-3">
-    <div className="flex justify-between items-center">
-      <label className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">{label}</label>
-      <span className="text-[10px] font-mono text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">{value.toFixed(2)}</span>
-    </div>
-    <input 
-      type="range" 
-      min={min} 
-      max={max} 
-      step={step} 
-      value={value} 
+  <div className="flex items-center gap-2 mb-1.5">
+    <label className="text-[9px] font-bold uppercase text-gray-500 tracking-wider w-8 shrink-0">{label}</label>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
       onChange={(e) => onChange(parseFloat(e.target.value))}
-      className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+      className="flex-1 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
     />
+    <span className="text-[9px] font-mono text-blue-400 w-10 text-right shrink-0">{value.toFixed(2)}</span>
   </div>
 );
 
@@ -753,50 +751,22 @@ export default function App() {
     { id: "vomit", label: "Vomit", icon: <Sparkle className="w-3 h-3" /> },
   ];
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  const toggleSection = (id: string) => setOpenSection(openSection === id ? null : id);
+
   return (
     <div className="relative w-full h-screen bg-white text-slate-900 font-sans overflow-hidden">
-      {/* Background Atmosphere - Removed for clean white background */}
-
-      {/* Header */}
-      <header className="absolute top-0 left-0 w-full p-8 flex justify-between items-start z-10">
-        <div>
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-black tracking-tighter uppercase italic text-slate-900"
-          >
-            SmoothBrain<span className="text-[#fb923c]">3D</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            className="text-xs uppercase tracking-[0.2em] font-mono mt-1 text-slate-500"
-          >
-            Character Editor v0.1
-          </motion.p>
-        </div>
-
-        <button 
-          onClick={() => setView("grip")}
-          className="bg-slate-100 hover:bg-slate-200 border border-slate-200 p-4 rounded-2xl text-slate-900 transition-all flex items-center gap-3 shadow-xl pointer-events-auto"
-        >
-          <Settings2 className="w-5 h-5 text-blue-500" />
-          <div className="text-left">
-            <div className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">System Demo</div>
-            <div className="text-[8px] font-mono opacity-50 uppercase tracking-tighter">Grip Mapping v1.0</div>
-          </div>
-        </button>
-      </header>
-
-      {/* Main 3D Canvas */}
+      {/* Full-screen 3D Canvas */}
       <div className="w-full h-full">
         <Canvas shadows dpr={[1, 2]}>
           <color attach="background" args={["#020617"]} />
-          <Suspense fallback={<Html center><div className="text-blue-400 font-mono animate-pulse uppercase tracking-widest">Initialising Orbital Entity...</div></Html>}>
-            <Scene 
-              accessory={accessory} 
-              animation={animation} 
-              isSnapped={isSnapped} 
+          <Suspense fallback={<Html center><div className="text-blue-400 font-mono animate-pulse uppercase tracking-widest">Loading...</div></Html>}>
+            <Scene
+              accessory={accessory}
+              animation={animation}
+              isSnapped={isSnapped}
               weaponOffset={weaponOffset}
               handOffset={handOffset}
               armLength={armLength}
@@ -806,175 +776,174 @@ export default function App() {
         </Canvas>
       </div>
 
-      {/* Calibration Panel */}
-      {showCalibration && (
-        <div className="absolute top-32 right-8 w-72 bg-white/90 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 shadow-2xl z-30 max-h-[70vh] overflow-y-auto pointer-events-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-sm font-black uppercase italic tracking-wider text-slate-900">Cat Calibration</h2>
-            <button 
-              onClick={copyToClipboard}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500"
-            >
-              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-            </button>
-          </div>
+      {/* Hamburger button */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="absolute top-3 left-3 z-30 w-10 h-10 flex items-center justify-center rounded-xl bg-black/50 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-all pointer-events-auto"
+      >
+        {menuOpen ? <span className="text-lg font-bold">&times;</span> : <Settings className="w-5 h-5" />}
+      </button>
 
-          <div className="space-y-6">
-            <section>
-              <h3 className="text-[9px] uppercase tracking-[0.2em] text-orange-600 font-black mb-4 flex items-center gap-2">
-                <User className="w-3 h-3" /> Arm Rig
-              </h3>
-              <ControlSlider label="Arm Length" value={armLength} min={0.2} max={1.0} step={0.01} onChange={setArmLength} />
-            </section>
-
-            <section>
-              <h3 className="text-[9px] uppercase tracking-[0.2em] text-yellow-600 font-black mb-4 flex items-center gap-2">
-                <Box className="w-3 h-3" /> Hand Position (Socket)
-              </h3>
-              <ControlSlider label="X Offset" value={handOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
-              <ControlSlider label="Y Offset" value={handOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
-              <ControlSlider label="Z Offset" value={handOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
-              <ControlSlider label="X Rotation" value={handOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
-              <ControlSlider label="Y Rotation" value={handOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
-              <ControlSlider label="Z Rotation" value={handOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
-            </section>
-
-            <section>
-              <h3 className="text-[9px] uppercase tracking-[0.2em] text-blue-600 font-black mb-4 flex items-center gap-2">
-                <Box className="w-3 h-3" /> Weapon Position
-              </h3>
-              <ControlSlider label="X Offset" value={weaponOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
-              <ControlSlider label="Y Offset" value={weaponOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
-              <ControlSlider label="Z Offset" value={weaponOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
-            </section>
-
-            <section>
-              <h3 className="text-[9px] uppercase tracking-[0.2em] text-red-600 font-black mb-4 flex items-center gap-2">
-                <RotateCcw className="w-3 h-3" /> Weapon Rotation
-              </h3>
-              <ControlSlider label="X Rotation" value={weaponOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
-              <ControlSlider label="Y Rotation" value={weaponOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
-              <ControlSlider label="Z Rotation" value={weaponOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
-            </section>
-
-            {animation === "naruto" && (
-              <section className="pt-6 border-t border-slate-100">
-                <h3 className="text-[9px] uppercase tracking-[0.2em] text-purple-600 font-black mb-4 flex items-center gap-2">
-                  <User className="w-3 h-3" /> Naruto Arm Position
-                </h3>
-                <ControlSlider label="X Offset" value={narutoArmOffset.pos[0]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
-                <ControlSlider label="Y Offset" value={narutoArmOffset.pos[1]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
-                <ControlSlider label="Z Offset" value={narutoArmOffset.pos[2]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
-                <ControlSlider label="X Rotation" value={narutoArmOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
-                <ControlSlider label="Y Rotation" value={narutoArmOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
-                <ControlSlider label="Z Rotation" value={narutoArmOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
-              </section>
-            )}
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <button 
+      {/* Compact animation strip — always visible, bottom of screen */}
+      <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-auto">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide bg-black/50 backdrop-blur-md rounded-xl border border-white/10 p-1">
+          {animations.map((anim) => (
+            <button
+              key={anim.id}
               onClick={() => {
-                setWeaponOffset({ pos: [0.04, 0.11, -0.11], rot: [-93, -4, 79] });
-                setHandOffset({ pos: [0, -0.18, 0], rot: [0, 0, 0] });
-                setArmLength(0.34);
-                setNarutoArmOffset({ pos: [0, 0, 0], rot: [180, 0, 0] });
+                setAnimation(anim.id);
+                if (anim.id === "shoot") setAccessory("gun");
               }}
-              className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors"
+              className={`flex-shrink-0 px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all whitespace-nowrap ${
+                animation === anim.id
+                  ? 'bg-[#fb923c] text-white'
+                  : 'text-gray-400 active:bg-white/10'
+              }`}
             >
-              Reset Calibration
+              {anim.label}
             </button>
-          </div>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* Controls Overlay */}
-      <div className="absolute bottom-0 left-0 w-full p-8 flex flex-col md:flex-row justify-between items-end gap-8 z-10 pointer-events-none">
-        {/* Left Side: Animation Controls */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-black/60 backdrop-blur-xl border border-white/10 p-4 rounded-2xl w-full md:w-48 pointer-events-auto"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Camera className="w-4 h-4 text-[#ef4444]" />
-            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Animations</span>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-1">
-            {animations.map((anim) => (
+      {/* Snap button — always visible, bottom right above anim strip */}
+      <button
+        onClick={() => setIsSnapped(!isSnapped)}
+        className={`absolute bottom-16 right-3 z-20 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all pointer-events-auto ${
+          isSnapped
+            ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+            : 'bg-black/50 backdrop-blur-md text-gray-400 border-white/10 active:bg-white/10'
+        }`}
+      >
+        {isSnapped ? '🔗 Snapped' : '🔫 Snap Guns'}
+      </button>
+
+      {/* Slide-out menu panel */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ x: -280 }}
+            animate={{ x: 0 }}
+            exit={{ x: -280 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="absolute top-0 left-0 bottom-0 w-[260px] z-20 bg-black/80 backdrop-blur-xl border-r border-white/10 overflow-y-auto pointer-events-auto"
+          >
+            <div className="pt-16 px-3 pb-20">
+              {/* Grip System link */}
               <button
-                key={anim.id}
-                onClick={() => {
-                  setAnimation(anim.id);
-                  if (anim.id === "shoot") setAccessory("gun");
-                }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all ${animation === anim.id ? 'bg-[#ef4444] text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                onClick={() => { setView("grip"); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-3 mb-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
               >
-                {anim.icon}
-                {anim.label}
+                <Settings2 className="w-4 h-4 text-blue-400" />
+                Grip Mapping Demo
               </button>
-            ))}
-          </div>
-        </motion.div>
 
-        {/* Right Side: Snap Control */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-black/60 backdrop-blur-xl border border-white/10 p-6 rounded-2xl w-full md:w-64 pointer-events-auto"
-        >
-          <div className="flex items-center gap-2 mb-6">
-            <Link className="w-4 h-4 text-blue-400" />
-            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">System Protocol</span>
-          </div>
+              {/* --- Calibration Section --- */}
+              <button onClick={() => toggleSection('calib')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Settings className="w-3 h-3" /> Calibration</span>
+                <span className="text-gray-600">{openSection === 'calib' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'calib' && (
+                <div className="px-2 pb-3 space-y-3">
+                  <div>
+                    <span className="text-[8px] uppercase tracking-widest text-orange-500 font-bold">Arm Rig</span>
+                    <ControlSlider label="Length" value={armLength} min={0.2} max={1.0} step={0.01} onChange={setArmLength} />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setWeaponOffset({ pos: [0.04, 0.11, -0.11], rot: [-93, -4, 79] });
+                      setHandOffset({ pos: [0, -0.18, 0], rot: [0, 0, 0] });
+                      setArmLength(0.34);
+                      setNarutoArmOffset({ pos: [0, 0, 0], rot: [180, 0, 0] });
+                    }}
+                    className="w-full py-2 bg-white/5 text-gray-500 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-white/10"
+                  >
+                    Reset All
+                  </button>
+                </div>
+              )}
 
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => setIsSnapped(!isSnapped)}
-              className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl border font-black uppercase italic tracking-tighter transition-all ${
-                isSnapped 
-                ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]' 
-                : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
-              }`}
-            >
-              {isSnapped ? <Link className="w-5 h-5" /> : <Unlink className="w-5 h-5" />}
-              {isSnapped ? 'Snapped' : 'Snap to Hand'}
-            </button>
+              {/* --- Hand Socket Section --- */}
+              <button onClick={() => toggleSection('hand')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Box className="w-3 h-3 text-yellow-500" /> Hand Socket</span>
+                <span className="text-gray-600">{openSection === 'hand' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'hand' && (
+                <div className="px-2 pb-3">
+                  <ControlSlider label="X" value={handOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
+                  <ControlSlider label="Y" value={handOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
+                  <ControlSlider label="Z" value={handOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
+                  <ControlSlider label="Rot X" value={handOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
+                  <ControlSlider label="Rot Y" value={handOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
+                  <ControlSlider label="Rot Z" value={handOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
+                </div>
+              )}
 
-            <button
-              onClick={() => setShowCalibration(!showCalibration)}
-              className={`w-full flex items-center justify-center gap-3 p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
-                showCalibration ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              Calibration
-            </button>
-          </div>
-          
-          <p className="text-[8px] uppercase tracking-widest text-gray-500 mt-4 text-center font-mono">
-            {isSnapped ? 'Weapon Link: ACTIVE' : 'Weapon Link: OFFLINE'}
-          </p>
-        </motion.div>
-      </div>
+              {/* --- Weapon Position Section --- */}
+              <button onClick={() => toggleSection('wepPos')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Crosshair className="w-3 h-3 text-blue-500" /> Weapon Pos</span>
+                <span className="text-gray-600">{openSection === 'wepPos' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'wepPos' && (
+                <div className="px-2 pb-3">
+                  <ControlSlider label="X" value={weaponOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
+                  <ControlSlider label="Y" value={weaponOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
+                  <ControlSlider label="Z" value={weaponOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
+                </div>
+              )}
 
-      {/* Footer Micro-labels */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-8 pointer-events-none opacity-50">
-        <span className="text-[8px] uppercase tracking-[0.4em] font-mono text-slate-400">Anim: {animation.toUpperCase()}</span>
-        <span className="text-[8px] uppercase tracking-[0.4em] font-mono text-slate-400">Species: Felis Sphericus</span>
-        <span className="text-[8px] uppercase tracking-[0.4em] font-mono text-slate-400">Meow: Enabled</span>
-      </div>
+              {/* --- Weapon Rotation Section --- */}
+              <button onClick={() => toggleSection('wepRot')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><RotateCcw className="w-3 h-3 text-red-500" /> Weapon Rot</span>
+                <span className="text-gray-600">{openSection === 'wepRot' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'wepRot' && (
+                <div className="px-2 pb-3">
+                  <ControlSlider label="X" value={weaponOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
+                  <ControlSlider label="Y" value={weaponOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
+                  <ControlSlider label="Z" value={weaponOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
+                </div>
+              )}
 
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
+              {/* --- Naruto Arm Section (only in naruto anim) --- */}
+              {animation === "naruto" && (
+                <>
+                  <button onClick={() => toggleSection('naruto')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                    <span className="flex items-center gap-2"><User className="w-3 h-3 text-purple-500" /> Naruto Arms</span>
+                    <span className="text-gray-600">{openSection === 'naruto' ? '−' : '+'}</span>
+                  </button>
+                  {openSection === 'naruto' && (
+                    <div className="px-2 pb-3">
+                      <ControlSlider label="X" value={narutoArmOffset.pos[0]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
+                      <ControlSlider label="Y" value={narutoArmOffset.pos[1]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
+                      <ControlSlider label="Z" value={narutoArmOffset.pos[2]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
+                      <ControlSlider label="Rot X" value={narutoArmOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
+                      <ControlSlider label="Rot Y" value={narutoArmOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
+                      <ControlSlider label="Rot Z" value={narutoArmOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* --- Export Section --- */}
+              <button onClick={() => toggleSection('export')} className="w-full flex items-center justify-between px-3 py-2 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Copy className="w-3 h-3 text-green-500" /> Export Data</span>
+                <span className="text-gray-600">{openSection === 'export' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'export' && (
+                <div className="px-2 pb-3">
+                  <button
+                    onClick={copyToClipboard}
+                    className="w-full py-2 bg-white/5 text-gray-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-white/10 flex items-center justify-center gap-2"
+                  >
+                    {copied ? <><Check className="w-3 h-3 text-green-400" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Config JSON</>}
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
