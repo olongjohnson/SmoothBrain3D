@@ -775,16 +775,18 @@ export default function App() {
         </Canvas>
       </div>
 
-      {/* Menu toggle — top-left, always on top */}
-      <button
-        onClick={() => setMenuOpen(!menuOpen)}
-        className="absolute top-3 left-3 z-40 w-10 h-10 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-all pointer-events-auto"
-      >
-        {menuOpen ? <span className="text-lg font-bold">&times;</span> : <Settings className="w-5 h-5" />}
-      </button>
+      {/* Menu open button — only when menu is closed */}
+      {!menuOpen && (
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="absolute top-3 left-3 z-40 w-10 h-10 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-all pointer-events-auto"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
+      )}
 
-      {/* Compact animation strip — always visible, bottom of screen */}
-      <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-auto">
+      {/* Compact animation strip — hidden when menu open */}
+      <div className={`absolute bottom-3 left-3 right-3 z-20 pointer-events-auto ${menuOpen ? 'hidden' : ''}`}>
         <div className="flex gap-1 overflow-x-auto scrollbar-hide bg-black/50 backdrop-blur-md rounded-xl border border-white/10 p-1">
           {animations.map((anim) => (
             <button
@@ -805,10 +807,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* Snap button — always visible, bottom right above anim strip */}
+      {/* Snap button — hidden when menu open */}
       <button
         onClick={() => setIsSnapped(!isSnapped)}
-        className={`absolute bottom-16 right-3 z-20 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all pointer-events-auto ${
+        className={`absolute bottom-16 right-3 z-20 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all pointer-events-auto ${menuOpen ? 'hidden' : ''} ${
           isSnapped
             ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)]'
             : 'bg-black/50 backdrop-blur-md text-gray-400 border-white/10 active:bg-white/10'
@@ -827,11 +829,22 @@ export default function App() {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="absolute top-0 left-0 bottom-0 w-[260px] z-30 bg-black/85 backdrop-blur-xl border-r border-white/10 overflow-y-auto pointer-events-auto"
           >
-            <div className="pt-14 px-3 pb-20">
+            <div className="px-3 pb-20">
+              {/* Close button */}
+              <div className="flex items-center justify-between py-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Menu</span>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white active:scale-95"
+                >
+                  <span className="text-sm font-bold">&times;</span>
+                </button>
+              </div>
+
               {/* Grip System link */}
               <button
                 onClick={() => { setView("grip"); setMenuOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-3 mt-1 mb-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
+                className="w-full flex items-center gap-2 px-3 py-3 mb-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
               >
                 <Settings2 className="w-4 h-4 text-blue-400" />
                 Grip Mapping Demo
