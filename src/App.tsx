@@ -84,7 +84,7 @@ const CatArm = ({
   const scaleFactor = armLength / 0.5;
   
   return (
-    <mesh ref={armRef} castShadow position={[isLeft ? -0.85 : 0.85, -0.2, 0]} rotation={[0, 0, isLeft ? 0.2 : -0.2]}>
+    <mesh ref={armRef} castShadow position={[isLeft ? -0.85 : 0.85, -0.2, 0]} rotation={[0, 0, isLeft ? 0.2 : -0.2]} userData={{ entity: true, name: `${side}_arm` }}>
       {/* Shoulder */}
       <mesh castShadow>
         <sphereGeometry args={[0.12, 16, 16]} />
@@ -124,7 +124,7 @@ const CatArm = ({
 };
 
 const Gun = ({ muzzleFlashRef }: { muzzleFlashRef: React.RefObject<THREE.Group> }) => (
-  <group>
+  <group userData={{ entity: true, name: 'gun' }}>
     {/* Gun Body / Frame */}
     <mesh castShadow position={[0, 0.15, 0.1]}>
       <boxGeometry args={[0.1, 0.15, 0.4]} />
@@ -422,13 +422,13 @@ const CatModel = ({
   return (
     <group ref={group}>
       {/* --- The "Big Ass Circle" Body --- */}
-      <mesh ref={bodyRef} castShadow>
+      <mesh ref={bodyRef} castShadow userData={{ entity: true, name: 'body' }}>
         <sphereGeometry args={[0.8, 32, 32]} />
         <meshStandardMaterial color={bodyColor} roughness={0.8} />
       </mesh>
 
       {/* --- Cat Face --- */}
-      <group ref={headRef} position={[0, 0, 0.75]}>
+      <group ref={headRef} position={[0, 0, 0.75]} userData={{ entity: true, name: 'head' }}>
         {/* Snout */}
         <mesh position={[0, -0.1, 0.05]}>
           <sphereGeometry args={[0.2, 16, 16]} />
@@ -516,11 +516,11 @@ const CatModel = ({
       )}
 
       {/* --- Pointy Ears (Bigger) --- */}
-      <mesh castShadow position={[-0.5, 0.7, 0]} rotation={[0, 0, 0.4]}>
+      <mesh castShadow position={[-0.5, 0.7, 0]} rotation={[0, 0, 0.4]} userData={{ entity: true, name: 'left_ear' }}>
         <coneGeometry args={[0.25, 0.7, 4]} />
         <meshStandardMaterial color={earColor} />
       </mesh>
-      <mesh castShadow position={[0.5, 0.7, 0]} rotation={[0, 0, -0.4]}>
+      <mesh castShadow position={[0.5, 0.7, 0]} rotation={[0, 0, -0.4]} userData={{ entity: true, name: 'right_ear' }}>
         <coneGeometry args={[0.25, 0.7, 4]} />
         <meshStandardMaterial color={earColor} />
       </mesh>
@@ -556,17 +556,17 @@ const CatModel = ({
       </CatArm>
 
       {/* --- Stupid Lil Legs --- */}
-      <mesh ref={leftLegRef} castShadow position={[-0.4, -0.7, 0]}>
+      <mesh ref={leftLegRef} castShadow position={[-0.4, -0.7, 0]} userData={{ entity: true, name: 'left_leg' }}>
         <capsuleGeometry args={[0.1, 0.2, 4, 8]} />
         <meshStandardMaterial color={bodyColor} />
       </mesh>
-      <mesh ref={rightLegRef} castShadow position={[0.4, -0.7, 0]}>
+      <mesh ref={rightLegRef} castShadow position={[0.4, -0.7, 0]} userData={{ entity: true, name: 'right_leg' }}>
         <capsuleGeometry args={[0.1, 0.2, 4, 8]} />
         <meshStandardMaterial color={bodyColor} />
       </mesh>
 
       {/* --- The Hat --- */}
-      <group ref={hatRef} position={[0, 0.75, 0]}>
+      <group ref={hatRef} position={[0, 0.75, 0]} userData={{ entity: true, name: 'hat' }}>
         {/* Party Hat Cone */}
         <mesh castShadow>
           <coneGeometry args={[0.25, 0.5, 16]} />
@@ -622,14 +622,22 @@ const Scene = ({
 
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    // Walk up to find the nearest mesh (not a group)
+    // Walk up from the hit object to find the nearest entity group
+    // (marked with userData.entity), or stop at a mesh if no entity found
     let target: THREE.Object3D | null = e.object;
-    while (target && !(target instanceof THREE.Mesh)) {
+    let entityGroup: THREE.Object3D | null = null;
+    let firstMesh: THREE.Object3D | null = null;
+    while (target) {
+      if (target instanceof THREE.Mesh && !firstMesh) {
+        firstMesh = target;
+      }
+      if (target.userData?.entity) {
+        entityGroup = target;
+        break;
+      }
       target = target.parent;
     }
-    if (target && target instanceof THREE.Mesh) {
-      setSelectedMesh(target);
-    }
+    setSelectedMesh(entityGroup || firstMesh);
   }, [setSelectedMesh]);
 
   const handlePointerMissed = useCallback(() => {
