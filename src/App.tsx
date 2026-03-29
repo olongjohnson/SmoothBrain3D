@@ -640,31 +640,35 @@ const CatModel = ({
 // Slider panel for precise transform control on mobile
 const TransformSliders = ({ mesh, mode }: { mesh: THREE.Object3D, mode: "translate" | "rotate" | "scale" }) => {
   const DEG = 180 / Math.PI;
-  const [vals, setVals] = useState<[number, number, number]>([0, 0, 0]);
 
-  // Read current values from the mesh
+  const readVals = (): [number, number, number] => {
+    try {
+      if (!mesh?.position) return [0, 0, 0];
+      if (mode === 'translate') return [mesh.position.x, mesh.position.y, mesh.position.z];
+      if (mode === 'rotate') return [mesh.rotation.x * DEG, mesh.rotation.y * DEG, mesh.rotation.z * DEG];
+      return [mesh.scale.x, mesh.scale.y, mesh.scale.z];
+    } catch { return [0, 0, 0]; }
+  };
+
+  const [vals, setVals] = useState<[number, number, number]>(readVals);
+
   React.useEffect(() => {
-    const read = () => {
-      if (mode === 'translate') setVals([mesh.position.x, mesh.position.y, mesh.position.z]);
-      else if (mode === 'rotate') setVals([mesh.rotation.x * DEG, mesh.rotation.y * DEG, mesh.rotation.z * DEG]);
-      else setVals([mesh.scale.x, mesh.scale.y, mesh.scale.z]);
-    };
-    read();
-    const id = setInterval(read, 200);
-    return () => clearInterval(id);
+    setVals(readVals());
   }, [mesh, mode]);
 
   const apply = (axis: number, val: number) => {
-    const next = [...vals] as [number, number, number];
-    next[axis] = val;
-    setVals(next);
-    if (mode === 'translate') mesh.position.set(next[0], next[1], next[2]);
-    else if (mode === 'rotate') mesh.rotation.set(next[0] / DEG, next[1] / DEG, next[2] / DEG);
-    else mesh.scale.set(next[0], next[1], next[2]);
+    try {
+      const next = [...vals] as [number, number, number];
+      next[axis] = val;
+      setVals(next);
+      if (mode === 'translate') mesh.position.set(next[0], next[1], next[2]);
+      else if (mode === 'rotate') mesh.rotation.set(next[0] / DEG, next[1] / DEG, next[2] / DEG);
+      else mesh.scale.set(next[0], next[1], next[2]);
+    } catch { /* mesh may have been disposed */ }
   };
 
   const labels = mode === 'translate' ? ['X', 'Y', 'Z'] : mode === 'rotate' ? ['Rx', 'Ry', 'Rz'] : ['Sx', 'Sy', 'Sz'];
-  const range = mode === 'translate' ? [-3, 3] : mode === 'rotate' ? [-180, 180] : [0.1, 5];
+  const range: [number, number] = mode === 'translate' ? [-3, 3] : mode === 'rotate' ? [-180, 180] : [0.1, 5];
   const step = mode === 'scale' ? 0.05 : mode === 'rotate' ? 1 : 0.02;
 
   return (
@@ -749,8 +753,6 @@ const Scene = ({
   const setCatGroup = useCallback((node: THREE.Group | null) => {
     catGroupRef.current = node;
     _catGroupRef = node;
-    // Auto-load saved layout on mount
-    if (node) setTimeout(() => loadLayout(), 100);
   }, []);
 
   const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
