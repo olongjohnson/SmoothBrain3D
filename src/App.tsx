@@ -833,64 +833,67 @@ export default function App() {
         </button>
       )}
 
-      {/* Compact animation strip — hidden when menu open */}
-      <div className={`absolute bottom-3 left-3 right-3 z-20 pointer-events-auto ${menuOpen ? 'hidden' : ''}`}>
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide bg-black/50 backdrop-blur-md rounded-xl border border-white/10 p-1">
-          {animations.map((anim) => (
+      {/* Bottom action bar — safe area aware for Safari */}
+      {!menuOpen && (
+        <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto bg-black/70 backdrop-blur-xl border-t border-white/10" style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+          {/* Transform toolbar — when a part is selected */}
+          {selectedMesh && (
+            <div className="flex items-center justify-center gap-2 px-3 pt-2 pb-1">
+              {([["translate", Move, "Move"], ["rotate", RotateCcw, "Rotate"], ["scale", Maximize, "Scale"]] as const).map(([mode, Icon, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setTransformMode(mode)}
+                  title={label}
+                  className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
+                    transformMode === mode
+                      ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.4)]'
+                      : 'text-white/60 active:bg-white/10'
+                  }`}
+                >
+                  <Icon size={18} />
+                </button>
+              ))}
+              <div className="w-px h-7 bg-white/10 mx-1" />
+              <button
+                onClick={() => setSelectedMesh(null)}
+                className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-gray-400 active:bg-white/10"
+              >
+                Deselect
+              </button>
+            </div>
+          )}
+
+          {/* Animation strip + snap */}
+          <div className="flex items-center gap-2 px-2 pt-1 pb-2">
+            <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide">
+              {animations.map((anim) => (
+                <button
+                  key={anim.id}
+                  onClick={() => {
+                    setAnimation(anim.id);
+                    if (anim.id === "shoot") setAccessory("gun");
+                  }}
+                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all whitespace-nowrap ${
+                    animation === anim.id
+                      ? 'bg-[#fb923c] text-white'
+                      : 'text-gray-400 active:bg-white/10'
+                  }`}
+                >
+                  {anim.label}
+                </button>
+              ))}
+            </div>
             <button
-              key={anim.id}
-              onClick={() => {
-                setAnimation(anim.id);
-                if (anim.id === "shoot") setAccessory("gun");
-              }}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all whitespace-nowrap ${
-                animation === anim.id
-                  ? 'bg-[#fb923c] text-white'
-                  : 'text-gray-400 active:bg-white/10'
+              onClick={() => setIsSnapped(!isSnapped)}
+              className={`flex-shrink-0 px-3 py-2 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${
+                isSnapped
+                  ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.4)]'
+                  : 'text-gray-400 border-white/10 active:bg-white/10'
               }`}
             >
-              {anim.label}
+              {isSnapped ? '🔗' : '🔫'}
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Snap button — hidden when menu open */}
-      <button
-        onClick={() => setIsSnapped(!isSnapped)}
-        className={`absolute bottom-16 right-3 z-20 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all pointer-events-auto ${menuOpen ? 'hidden' : ''} ${
-          isSnapped
-            ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)]'
-            : 'bg-black/50 backdrop-blur-md text-gray-400 border-white/10 active:bg-white/10'
-        }`}
-      >
-        {isSnapped ? '🔗 Snapped' : '🔫 Snap Guns'}
-      </button>
-
-      {/* Transform toolbar — appears when a mesh part is selected */}
-      {selectedMesh && !menuOpen && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 pointer-events-auto">
-          {([["translate", Move, "Move"], ["rotate", RotateCcw, "Rotate"], ["scale", Maximize, "Scale"]] as const).map(([mode, Icon, label]) => (
-            <button
-              key={mode}
-              onClick={() => setTransformMode(mode)}
-              title={label}
-              className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
-                transformMode === mode
-                  ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.4)]'
-                  : 'text-white/60 active:bg-white/10'
-              }`}
-            >
-              <Icon size={18} />
-            </button>
-          ))}
-          <div className="w-px h-7 bg-white/10 mx-1" />
-          <button
-            onClick={() => setSelectedMesh(null)}
-            className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-gray-400 active:bg-white/10"
-          >
-            Deselect
-          </button>
+          </div>
         </div>
       )}
 
