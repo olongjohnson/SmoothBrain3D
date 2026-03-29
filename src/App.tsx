@@ -637,6 +637,57 @@ const CatModel = ({
   );
 };
 
+// Slider panel for precise transform control on mobile
+const TransformSliders = ({ mesh, mode }: { mesh: THREE.Object3D, mode: "translate" | "rotate" | "scale" }) => {
+  const DEG = 180 / Math.PI;
+  const [vals, setVals] = useState<[number, number, number]>([0, 0, 0]);
+
+  // Read current values from the mesh
+  React.useEffect(() => {
+    const read = () => {
+      if (mode === 'translate') setVals([mesh.position.x, mesh.position.y, mesh.position.z]);
+      else if (mode === 'rotate') setVals([mesh.rotation.x * DEG, mesh.rotation.y * DEG, mesh.rotation.z * DEG]);
+      else setVals([mesh.scale.x, mesh.scale.y, mesh.scale.z]);
+    };
+    read();
+    const id = setInterval(read, 200);
+    return () => clearInterval(id);
+  }, [mesh, mode]);
+
+  const apply = (axis: number, val: number) => {
+    const next = [...vals] as [number, number, number];
+    next[axis] = val;
+    setVals(next);
+    if (mode === 'translate') mesh.position.set(next[0], next[1], next[2]);
+    else if (mode === 'rotate') mesh.rotation.set(next[0] / DEG, next[1] / DEG, next[2] / DEG);
+    else mesh.scale.set(next[0], next[1], next[2]);
+  };
+
+  const labels = mode === 'translate' ? ['X', 'Y', 'Z'] : mode === 'rotate' ? ['Rx', 'Ry', 'Rz'] : ['Sx', 'Sy', 'Sz'];
+  const range = mode === 'translate' ? [-3, 3] : mode === 'rotate' ? [-180, 180] : [0.1, 5];
+  const step = mode === 'scale' ? 0.05 : mode === 'rotate' ? 1 : 0.02;
+
+  return (
+    <div className="px-3 pt-1 pb-1">
+      {labels.map((label, i) => (
+        <div key={label} className="flex items-center gap-2 mb-1">
+          <span className="text-[9px] font-bold uppercase text-gray-500 w-5 shrink-0">{label}</span>
+          <input
+            type="range"
+            min={range[0]}
+            max={range[1]}
+            step={step}
+            value={vals[i]}
+            onChange={(e) => apply(i, parseFloat(e.target.value))}
+            className="flex-1 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          />
+          <span className="text-[9px] font-mono text-blue-400 w-12 text-right shrink-0">{vals[i].toFixed(2)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Wrapper that properly handles dragging-changed for touch + mouse
 const TransformControlsWrapper = React.forwardRef(({ object, mode, size, orbitRef }: {
   object: THREE.Object3D;
@@ -963,6 +1014,11 @@ export default function App() {
                 {saved ? 'Saved!' : 'Save'}
               </button>
             </div>
+          )}
+
+          {/* Transform sliders — precise control for mobile */}
+          {selectedMesh && (
+            <TransformSliders mesh={selectedMesh} mode={transformMode} />
           )}
 
           {/* Animation strip + snap */}
