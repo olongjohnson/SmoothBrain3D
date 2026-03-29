@@ -1,0 +1,5 @@
+{
+  "name": "Fantasy Hero Forge",
+  "description": "A 3D character showcase for a fantasy game protagonist, built with Three.js and React.",
+  "requestFramePermissions": []
+}
