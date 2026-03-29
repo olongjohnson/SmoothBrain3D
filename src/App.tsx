@@ -801,10 +801,10 @@ export default function App() {
   }
 
   return (
-    <div className="relative w-full h-screen bg-white text-slate-900 font-sans overflow-hidden">
-      {/* Full-screen 3D Canvas */}
-      <div className="w-full h-full">
-        <Canvas shadows dpr={[1, 2]}>
+    <div className="relative w-full h-[100dvh] bg-white text-slate-900 font-sans overflow-hidden">
+      {/* Full-screen 3D Canvas — pointer-events managed so overlays work */}
+      <div className="absolute inset-0">
+        <Canvas shadows dpr={[1, 2]} style={{ touchAction: 'none' }}>
           <color attach="background" args={["#020617"]} />
           <Suspense fallback={<Html center><div className="text-blue-400 font-mono animate-pulse uppercase tracking-widest">Loading...</div></Html>}>
             <Scene
@@ -835,7 +835,7 @@ export default function App() {
 
       {/* Bottom action bar — safe area aware for Safari */}
       {!menuOpen && (
-        <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto bg-black/70 backdrop-blur-xl border-t border-white/10" style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto bg-black/70 backdrop-blur-xl border-t border-white/10 safe-bottom">
           {/* Transform toolbar — when a part is selected */}
           {selectedMesh && (
             <div className="flex items-center justify-center gap-2 px-3 pt-2 pb-1">
