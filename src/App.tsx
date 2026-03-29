@@ -841,10 +841,56 @@ export default function App() {
                 </button>
               </div>
 
+              {/* --- Animations Section --- */}
+              <button onClick={() => toggleSection('anim')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Camera className="w-3 h-3 text-orange-400" /> Animations</span>
+                <span className="text-gray-600">{openSection === 'anim' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'anim' && (
+                <div className="px-1 pb-2 grid grid-cols-2 gap-1">
+                  {animations.map((anim) => (
+                    <button
+                      key={anim.id}
+                      onClick={() => {
+                        setAnimation(anim.id);
+                        if (anim.id === "shoot") setAccessory("gun");
+                      }}
+                      className={`px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                        animation === anim.id
+                          ? 'bg-[#fb923c] text-white'
+                          : 'text-gray-400 bg-white/5 active:bg-white/10'
+                      }`}
+                    >
+                      {anim.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* --- Weapon Snap Section --- */}
+              <button onClick={() => toggleSection('snap')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
+                <span className="flex items-center gap-2"><Link className="w-3 h-3 text-blue-400" /> Weapon Snap</span>
+                <span className="text-gray-600">{openSection === 'snap' ? '−' : '+'}</span>
+              </button>
+              {openSection === 'snap' && (
+                <div className="px-2 pb-3">
+                  <button
+                    onClick={() => setIsSnapped(!isSnapped)}
+                    className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                      isSnapped
+                        ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                        : 'bg-white/5 text-gray-400 border-white/10 active:bg-white/10'
+                    }`}
+                  >
+                    {isSnapped ? '🔗 Snapped' : '🔫 Snap Guns'}
+                  </button>
+                </div>
+              )}
+
               {/* Grip System link */}
               <button
                 onClick={() => { setView("grip"); setMenuOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-3 mb-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
+                className="w-full flex items-center gap-2 px-3 py-3 mt-2 mb-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
               >
                 <Settings2 className="w-4 h-4 text-blue-400" />
                 Grip Mapping Demo
