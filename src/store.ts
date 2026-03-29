@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 export type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'capsule' | 'plane' | 'torus';
 export type TransformMode = 'translate' | 'rotate' | 'scale';
+export type AnimationType = 'idle' | 'walk' | 'run' | 'runFast' | 'naruto' | 'bark' | 'vomit' | 'shoot';
 
 export interface SB3DObject {
   id: string;
@@ -37,8 +38,10 @@ export interface SB3DScene {
 
 interface EditorState {
   scene: SB3DScene;
+  baseScene: SB3DScene | null; // snapshot before animation started
   selectedId: string | null;
   transformMode: TransformMode;
+  animation: AnimationType;
   undoStack: SB3DScene[];
   redoStack: SB3DScene[];
 
@@ -48,6 +51,7 @@ interface EditorState {
   select: (id: string | null) => void;
   setTransformMode: (mode: TransformMode) => void;
   cycleTransformMode: () => void;
+  setAnimation: (anim: AnimationType) => void;
   addObject: (obj: SB3DObject) => void;
   updateObject: (id: string, updates: Partial<SB3DObject>) => void;
   deleteSelected: () => void;
@@ -70,8 +74,10 @@ const MODES: TransformMode[] = ['translate', 'rotate', 'scale'];
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   scene: defaultScene,
+  baseScene: null,
   selectedId: null,
   transformMode: 'translate',
+  animation: 'idle' as AnimationType,
   undoStack: [],
   redoStack: [],
 
@@ -101,6 +107,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   cycleTransformMode: () => {
     const idx = MODES.indexOf(get().transformMode);
     set({ transformMode: MODES[(idx + 1) % MODES.length] });
+  },
+
+  setAnimation: (anim) => {
+    const { animation, scene, baseScene } = get();
+    if (anim === animation) return;
+    // When leaving idle, snapshot the scene so animations can modify transforms
+    if (animation === 'idle' && anim !== 'idle') {
+      set({ animation: anim, baseScene: JSON.parse(JSON.stringify(scene)) });
+    } else if (anim === 'idle' && baseScene) {
+      // Restore original positions when going back to idle
+      set({ animation: anim, scene: baseScene, baseScene: null });
+    } else {
+      set({ animation: anim });
+    }
   },
 
   pushUndo: () => {

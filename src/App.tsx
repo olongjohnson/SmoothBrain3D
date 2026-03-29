@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Viewport from './Viewport';
 import Toolbar from './Toolbar';
+import AnimationPanel from './AnimationPanel';
 import { useEditorStore } from './store';
 import type { SB3DScene } from './store';
 
@@ -353,7 +354,6 @@ const demoScene: SB3DScene = {
 export default function App() {
   const loadScene = useEditorStore((s) => s.loadScene);
   const selectedId = useEditorStore((s) => s.selectedId);
-  const scene = useEditorStore((s) => s.scene);
   const deleteSelected = useEditorStore((s) => s.deleteSelected);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
@@ -363,7 +363,7 @@ export default function App() {
     loadScene(demoScene);
   }, [loadScene]);
 
-  // Keyboard shortcuts (bonus for tablet keyboards)
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -383,30 +383,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [selectedId, deleteSelected, undo, redo, cycleTransformMode]);
 
-  const selectedObj = scene.objects.find((o) => o.id === selectedId);
-
   return (
     <div className="w-screen h-[100dvh] flex flex-col bg-[#0f0f1a] overflow-hidden select-none">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] border-b border-white/5">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] border-b border-white/5 z-20">
         <div className="flex items-center gap-2">
           <span className="text-sm font-black tracking-tight text-white">
             SmoothBrain<span className="text-blue-400">3D</span>
           </span>
           <span className="text-[10px] text-white/30 font-mono">v0.1</span>
         </div>
-        {selectedObj && (
-          <span className="text-xs text-white/50 font-mono">{selectedObj.name}</span>
-        )}
       </div>
 
-      {/* Viewport */}
+      {/* Viewport with overlays */}
       <div className="flex-1 relative">
         <Viewport />
-      </div>
-
-      {/* Bottom toolbar */}
-      <div className="bg-[#16162a] border-t border-white/5 safe-bottom">
+        <AnimationPanel />
         <Toolbar />
       </div>
     </div>

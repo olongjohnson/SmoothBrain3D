@@ -114,9 +114,9 @@ export default function SceneObject({ obj, isSelected, onSelect }: SceneObjectPr
       name={obj.id}
     >
       {isCustomMesh ? (
-        <meshStandardMaterial vertexColors flatShading />
+        <meshStandardMaterial vertexColors flatShading emissive={isSelected ? '#3b82f6' : '#000000'} emissiveIntensity={isSelected ? 0.3 : 0} />
       ) : (
-        <meshStandardMaterial color={obj.color} flatShading />
+        <meshStandardMaterial color={obj.color} flatShading emissive={isSelected ? '#3b82f6' : '#000000'} emissiveIntensity={isSelected ? 0.3 : 0} />
       )}
     </mesh>
   );

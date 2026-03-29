@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls, TransformControls, GizmoHelper, GizmoViewport, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import SceneObject from './SceneObject';
+import AnimationDriver from './Animations';
 import { useEditorStore } from './store';
 
 function SceneContents() {
@@ -106,6 +107,9 @@ function SceneContents() {
           }
         />
       )}
+
+      {/* Animation driver */}
+      <AnimationDriver />
 
       {/* Orientation gizmo */}
       <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
