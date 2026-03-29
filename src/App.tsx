@@ -635,6 +635,35 @@ const CatModel = ({
   );
 };
 
+// Wrapper that properly handles dragging-changed for touch + mouse
+const TransformControlsWrapper = React.forwardRef(({ object, mode, size, orbitRef }: {
+  object: THREE.Object3D;
+  mode: "translate" | "rotate" | "scale";
+  size: number;
+  orbitRef: React.RefObject<any>;
+}, ref: any) => {
+  const controlsRef = useRef<any>(null);
+
+  React.useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const handler = (e: any) => {
+      if (orbitRef.current) orbitRef.current.enabled = !e.value;
+    };
+    controls.addEventListener('dragging-changed', handler);
+    return () => controls.removeEventListener('dragging-changed', handler);
+  }, [orbitRef]);
+
+  return (
+    <TransformControls
+      ref={(r: any) => { controlsRef.current = r; if (ref) { if (typeof ref === 'function') ref(r); else ref.current = r; } }}
+      object={object}
+      mode={mode}
+      size={size}
+    />
+  );
+});
+
 const Scene = ({
   accessory,
   animation,
@@ -670,28 +699,29 @@ const Scene = ({
     if (node) setTimeout(() => loadLayout(), 100);
   }, []);
 
-  const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    // Walk up from the hit object to find the nearest entity group
-    // (marked with userData.entity), or stop at a mesh if no entity found
+    // Only select if it was a quick tap, not a drag (orbit)
+    // Walk up from the hit object to find the nearest entity
     let target: THREE.Object3D | null = e.object;
     let entityGroup: THREE.Object3D | null = null;
-    let firstMesh: THREE.Object3D | null = null;
     while (target) {
-      if (target instanceof THREE.Mesh && !firstMesh) {
-        firstMesh = target;
-      }
       if (target.userData?.entity) {
         entityGroup = target;
         break;
       }
       target = target.parent;
     }
-    setSelectedMesh(entityGroup || firstMesh);
+    // Only select named entities — don't fall back to random meshes
+    if (entityGroup) {
+      setSelectedMesh(entityGroup);
+    }
   }, [setSelectedMesh]);
 
   const handlePointerMissed = useCallback(() => {
     setSelectedMesh(null);
+    // Always re-enable orbit on deselect
+    if (orbitRef.current) orbitRef.current.enabled = true;
   }, [setSelectedMesh]);
 
   return (
@@ -717,7 +747,7 @@ const Scene = ({
         rotationIntensity={animation === "idle" ? 0.5 : 0}
         floatIntensity={animation === "idle" ? 0.4 : 0}
       >
-        <group ref={setCatGroup} onPointerDown={handlePointerDown} onPointerMissed={handlePointerMissed}>
+        <group ref={setCatGroup} onClick={handleClick} onPointerMissed={handlePointerMissed}>
           <CatModel
             accessory={accessory}
             animation={animation}
@@ -732,13 +762,12 @@ const Scene = ({
 
       {/* TransformControls on selected mesh */}
       {selectedMesh && (
-        <TransformControls
+        <TransformControlsWrapper
           ref={transformRef}
           object={selectedMesh}
           mode={transformMode}
           size={0.6}
-          onMouseDown={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
-          onMouseUp={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
+          orbitRef={orbitRef}
         />
       )}
 
