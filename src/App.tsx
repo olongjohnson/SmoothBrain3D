@@ -703,6 +703,8 @@ export default function App() {
   const [isSnapped, setIsSnapped] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   const [weaponOffset, setWeaponOffset] = useState<Offset>({
     pos: [0.04, 0.11, -0.11],
@@ -725,11 +727,24 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const toggleSection = (id: string) => setOpenSection(openSection === id ? null : id);
+
+  const animations = [
+    { id: "idle", label: "Idle" },
+    { id: "shoot", label: "Shoot" },
+    { id: "walk", label: "Walk" },
+    { id: "run", label: "Run" },
+    { id: "runFast", label: "Sprint" },
+    { id: "naruto", label: "Naruto" },
+    { id: "bark", label: "Bark" },
+    { id: "vomit", label: "Vomit" },
+  ];
+
   if (view === "grip") {
     return (
       <div className="relative w-full h-screen">
         <GripSystemDemo />
-        <button 
+        <button
           onClick={() => setView("cat")}
           className="absolute top-8 right-8 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 p-3 rounded-full text-white transition-all shadow-xl"
           title="Back to Cat"
@@ -739,22 +754,6 @@ export default function App() {
       </div>
     );
   }
-
-  const animations = [
-    { id: "idle", label: "Idle", icon: <RotateCcw className="w-3 h-3" /> },
-    { id: "shoot", label: "Shoot", icon: <Crosshair className="w-3 h-3" /> },
-    { id: "walk", label: "Walk", icon: <User className="w-3 h-3" /> },
-    { id: "run", label: "Run", icon: <User className="w-3 h-3" /> },
-    { id: "runFast", label: "Sprint", icon: <User className="w-3 h-3" /> },
-    { id: "naruto", label: "Naruto", icon: <User className="w-3 h-3" /> },
-    { id: "bark", label: "Bark", icon: <Sparkle className="w-3 h-3" /> },
-    { id: "vomit", label: "Vomit", icon: <Sparkle className="w-3 h-3" /> },
-  ];
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [openSection, setOpenSection] = useState<string | null>(null);
-
-  const toggleSection = (id: string) => setOpenSection(openSection === id ? null : id);
 
   return (
     <div className="relative w-full h-screen bg-white text-slate-900 font-sans overflow-hidden">
@@ -776,10 +775,10 @@ export default function App() {
         </Canvas>
       </div>
 
-      {/* Hamburger button */}
+      {/* Menu toggle — top-left, always on top */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="absolute top-3 left-3 z-30 w-10 h-10 flex items-center justify-center rounded-xl bg-black/50 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-all pointer-events-auto"
+        className="absolute top-3 left-3 z-40 w-10 h-10 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-all pointer-events-auto"
       >
         {menuOpen ? <span className="text-lg font-bold">&times;</span> : <Settings className="w-5 h-5" />}
       </button>
@@ -826,13 +825,13 @@ export default function App() {
             animate={{ x: 0 }}
             exit={{ x: -280 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute top-0 left-0 bottom-0 w-[260px] z-20 bg-black/80 backdrop-blur-xl border-r border-white/10 overflow-y-auto pointer-events-auto"
+            className="absolute top-0 left-0 bottom-0 w-[260px] z-30 bg-black/85 backdrop-blur-xl border-r border-white/10 overflow-y-auto pointer-events-auto"
           >
-            <div className="pt-16 px-3 pb-20">
+            <div className="pt-14 px-3 pb-20">
               {/* Grip System link */}
               <button
                 onClick={() => { setView("grip"); setMenuOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-3 mb-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
+                className="w-full flex items-center gap-2 px-3 py-3 mt-1 mb-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
               >
                 <Settings2 className="w-4 h-4 text-blue-400" />
                 Grip Mapping Demo
