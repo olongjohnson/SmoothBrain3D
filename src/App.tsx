@@ -38,7 +38,9 @@ import {
   Move,
   Maximize,
   Save,
-  RotateCw
+  RotateCw,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 // --- Types ---
@@ -686,6 +688,7 @@ const Scene = ({
   selectedMesh: THREE.Object3D | null,
   setSelectedMesh: (m: THREE.Object3D | null) => void,
   transformMode: "translate" | "rotate" | "scale",
+  selectionLocked: boolean,
 }) => {
   const orbitRef = useRef<any>(null);
   const transformRef = useRef<any>(null);
@@ -700,9 +703,8 @@ const Scene = ({
   }, []);
 
   const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    if (selectionLocked) return;
     e.stopPropagation();
-    // Only select if it was a quick tap, not a drag (orbit)
-    // Walk up from the hit object to find the nearest entity
     let target: THREE.Object3D | null = e.object;
     let entityGroup: THREE.Object3D | null = null;
     while (target) {
@@ -712,17 +714,16 @@ const Scene = ({
       }
       target = target.parent;
     }
-    // Only select named entities — don't fall back to random meshes
     if (entityGroup) {
       setSelectedMesh(entityGroup);
     }
-  }, [setSelectedMesh]);
+  }, [setSelectedMesh, selectionLocked]);
 
   const handlePointerMissed = useCallback(() => {
+    if (selectionLocked) return;
     setSelectedMesh(null);
-    // Always re-enable orbit on deselect
     if (orbitRef.current) orbitRef.current.enabled = true;
-  }, [setSelectedMesh]);
+  }, [setSelectedMesh, selectionLocked]);
 
   return (
     <>
@@ -733,8 +734,7 @@ const Scene = ({
         minDistance={3}
         maxDistance={12}
         maxPolarAngle={Math.PI / 2.1}
-        autoRotate={animation === "idle" && !selectedMesh}
-        autoRotateSpeed={0.5}
+        autoRotate={false}
       />
 
       <ambientLight intensity={0.5} />
@@ -742,23 +742,17 @@ const Scene = ({
       <pointLight position={[-10, 5, -10]} intensity={0.5} />
       <pointLight position={[0, 5, 5]} intensity={0.5} color="#3b82f6" />
 
-      <Float
-        speed={animation === "idle" ? 2 : 0}
-        rotationIntensity={animation === "idle" ? 0.5 : 0}
-        floatIntensity={animation === "idle" ? 0.4 : 0}
-      >
-        <group ref={setCatGroup} onClick={handleClick} onPointerMissed={handlePointerMissed}>
-          <CatModel
-            accessory={accessory}
-            animation={animation}
-            isSnapped={isSnapped}
-            weaponOffset={weaponOffset}
-            handOffset={handOffset}
-            armLength={armLength}
-            narutoArmOffset={narutoArmOffset}
-          />
-        </group>
-      </Float>
+      <group ref={setCatGroup} onClick={handleClick} onPointerMissed={handlePointerMissed}>
+        <CatModel
+          accessory={accessory}
+          animation={animation}
+          isSnapped={isSnapped}
+          weaponOffset={weaponOffset}
+          handOffset={handOffset}
+          armLength={armLength}
+          narutoArmOffset={narutoArmOffset}
+        />
+      </group>
 
       {/* TransformControls on selected mesh */}
       {selectedMesh && (
@@ -838,6 +832,7 @@ export default function App() {
   const [selectedMesh, setSelectedMesh] = useState<THREE.Object3D | null>(null);
   const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "scale">("translate");
   const [saved, setSaved] = useState(false);
+  const [selectionLocked, setSelectionLocked] = useState(false);
 
   const [weaponOffset, setWeaponOffset] = useState<Offset>({
     pos: [0.04, 0.11, -0.11],
@@ -906,6 +901,7 @@ export default function App() {
               selectedMesh={selectedMesh}
               setSelectedMesh={setSelectedMesh}
               transformMode={transformMode}
+              selectionLocked={selectionLocked}
             />
           </Suspense>
         </Canvas>
@@ -943,7 +939,18 @@ export default function App() {
               ))}
               <div className="w-px h-7 bg-white/10 mx-1" />
               <button
-                onClick={() => setSelectedMesh(null)}
+                onClick={() => setSelectionLocked(!selectionLocked)}
+                title={selectionLocked ? "Unlock selection" : "Lock selection"}
+                className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
+                  selectionLocked
+                    ? 'bg-yellow-600 text-white shadow-[0_0_10px_rgba(202,138,4,0.4)]'
+                    : 'text-white/60 active:bg-white/10'
+                }`}
+              >
+                {selectionLocked ? <Lock size={18} /> : <Unlock size={18} />}
+              </button>
+              <button
+                onClick={() => { if (selectionLocked) setSelectionLocked(false); setSelectedMesh(null); }}
                 className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-gray-400 active:bg-white/10"
               >
                 Deselect
