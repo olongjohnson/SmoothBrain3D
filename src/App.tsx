@@ -732,6 +732,7 @@ const Scene = ({
   selectedMesh,
   setSelectedMesh,
   transformMode,
+  selectionLocked,
 }: {
   accessory: string,
   animation: string,
