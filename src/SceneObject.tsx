@@ -36,6 +36,21 @@ export default function SceneObject({ obj, isSelected, onSelect }: SceneObjectPr
         const ps = obj.size || [1, 1, 1];
         return new THREE.PlaneGeometry(ps[0], ps[1]);
       }
+      case 'cone': {
+        return new THREE.ConeGeometry(
+          obj.radius || 0.5,
+          obj.height || 1,
+          obj.segments || 8
+        );
+      }
+      case 'capsule': {
+        return new THREE.CapsuleGeometry(
+          obj.radius || 0.1,
+          obj.height || 0.3,
+          4,
+          8
+        );
+      }
       case 'torus': {
         return new THREE.TorusGeometry(
           obj.radius || 0.5,

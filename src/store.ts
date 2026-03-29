@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'plane' | 'torus';
+export type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'capsule' | 'plane' | 'torus';
 export type TransformMode = 'translate' | 'rotate' | 'scale';
 
 export interface SB3DObject {

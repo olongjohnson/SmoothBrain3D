@@ -1,5 +1,5 @@
 import {
-  Box, Circle, Cylinder, Square, Donut,
+  Box, Circle, Cylinder, Square, Donut, Triangle, Pill,
   Move, RotateCcw, Maximize,
   Undo2, Redo2, Trash2, Copy,
   Download, Upload,
@@ -10,6 +10,8 @@ const primitives: { type: PrimitiveType; icon: typeof Box; label: string }[] = [
   { type: 'box', icon: Box, label: 'Box' },
   { type: 'sphere', icon: Circle, label: 'Sphere' },
   { type: 'cylinder', icon: Cylinder, label: 'Cylinder' },
+  { type: 'cone', icon: Triangle, label: 'Cone' },
+  { type: 'capsule', icon: Pill, label: 'Capsule' },
   { type: 'plane', icon: Square, label: 'Plane' },
   { type: 'torus', icon: Donut, label: 'Torus' },
 ];
@@ -18,6 +20,8 @@ const defaultParams: Record<PrimitiveType, Partial<SB3DObject>> = {
   box: { size: [1, 1, 1] },
   sphere: { radius: 0.5, widthSegments: 8, heightSegments: 6 },
   cylinder: { radius: 0.3, height: 1, segments: 8 },
+  cone: { radius: 0.3, height: 1, segments: 8 },
+  capsule: { radius: 0.15, height: 0.5 },
   plane: { size: [2, 2, 1] },
   torus: { radius: 0.5, tube: 0.15, segments: 12 },
 };
