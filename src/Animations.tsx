@@ -89,13 +89,24 @@ export default function AnimationDriver() {
         break;
       }
       case 'shoot': {
+        // Both pistols fire together
+        const recoil = Math.max(0, Math.sin(t * 14)) * 0.15;
+        const kick = Math.max(0, Math.sin(t * 14)) * 12;
+
         const bodyBase = bp('body');
-        if (bodyBase) updateObject('body', { position: [bodyBase[0], bodyBase[1] + Math.sin(t * 20) * 0.02, bodyBase[2]] });
-        // Arms forward
+        if (bodyBase) updateObject('body', { position: [bodyBase[0], bodyBase[1] + Math.sin(t * 24) * 0.02, bodyBase[2]] });
+        // Left arm — pistol forward with recoil
         const lla = bp('left_upper_arm');
-        if (lla) updateObject('left_upper_arm', { rotation: [-90, 0, 6], position: [lla[0] + 0.2, lla[1] + 0.1, lla[2] + 0.7] });
+        if (lla) updateObject('left_upper_arm', {
+          rotation: [-90 + kick, 0, 6],
+          position: [lla[0] + 0.2, lla[1] + 0.1 + recoil, lla[2] + 0.7 - recoil],
+        });
+        // Right arm — pistol forward with recoil
         const rla = bp('right_upper_arm');
-        if (rla) updateObject('right_upper_arm', { rotation: [-90, 0, -6], position: [rla[0] - 0.2, rla[1] + 0.1, rla[2] + 0.7] });
+        if (rla) updateObject('right_upper_arm', {
+          rotation: [-90 + kick, 0, -6],
+          position: [rla[0] - 0.2, rla[1] + 0.1 + recoil, rla[2] + 0.7 - recoil],
+        });
         break;
       }
     }

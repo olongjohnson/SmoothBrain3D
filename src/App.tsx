@@ -20,6 +20,7 @@ import {
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
 import GripSystemDemo from './archive/GripSystem';
+import DraggablePanel from './DraggablePanel';
 import {
   Sword,
   Shield,
@@ -40,7 +41,14 @@ import {
   Save,
   RotateCw,
   Lock,
-  Unlock
+  Unlock,
+  ChevronLeft,
+  ChevronRight,
+  Clapperboard,
+  Wrench,
+  Download,
+  Hand,
+  Target
 } from 'lucide-react';
 
 // --- Types ---
@@ -822,33 +830,35 @@ const Scene = ({
       <Sparkles count={50} scale={8} size={2} speed={0.3} opacity={0.1} color="#3b82f6" />
 
       {/* Floor & Shadows */}
-      <group position={[0, -0.01, 0]}>
-        <ContactShadows 
-          opacity={0.4} 
-          scale={12} 
-          blur={2} 
-          far={4} 
+      <group position={[0, -0.2, 0]}>
+        <ContactShadows
+          opacity={0.4}
+          scale={12}
+          blur={2}
+          far={4}
           resolution={512}
+          position={[0, 0.01, 0]}
         />
-        
+
         {/* Main Stage */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <circleGeometry args={[8, 64]} />
-          <meshStandardMaterial 
-            color="#0f172a" 
-            roughness={0.6} 
-            metalness={0.2}
+          <meshStandardMaterial
+            color="#0f172a"
+            roughness={0.8}
+            metalness={0.1}
+            depthWrite
           />
         </mesh>
 
         {/* Outer Ring */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
           <ringGeometry args={[8.1, 8.3, 64]} />
           <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} />
         </mesh>
 
-        {/* Grid Helper - Offset to prevent Z-fighting */}
-        <gridHelper args={[20, 40, "#1e293b", "#0f172a"]} position={[0, -0.04, 0]} />
+        {/* Grid Helper */}
+        <gridHelper args={[20, 40, "#1e293b", "#0f172a"]} position={[0, 0.01, 0]} />
       </group>
 
       <Environment preset="city" />
@@ -879,14 +889,13 @@ export default function App() {
   const [accessory, setAccessory] = useState("gun");
   const [animation, setAnimation] = useState("idle");
   const [isSnapped, setIsSnapped] = useState(false);
-  const [showCalibration, setShowCalibration] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [openSection, setOpenSection] = useState<string | null>(null);
   const [selectedMesh, setSelectedMesh] = useState<THREE.Object3D | null>(null);
   const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "scale">("translate");
   const [saved, setSaved] = useState(false);
   const [selectionLocked, setSelectionLocked] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [openPanels, setOpenPanels] = useState<Set<string>>(new Set());
 
   const [weaponOffset, setWeaponOffset] = useState<Offset>({
     pos: [0.04, 0.11, -0.11],
@@ -902,14 +911,23 @@ export default function App() {
     rot: [180, 0, 0]
   });
 
+  const togglePanel = (id: string) => {
+    setOpenPanels(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const closePanel = (id: string) => {
+    setOpenPanels(prev => { const next = new Set(prev); next.delete(id); return next; });
+  };
+
   const copyToClipboard = () => {
     const data = JSON.stringify({ weaponOffset, handOffset, armLength, narutoArmOffset }, null, 2);
     navigator.clipboard.writeText(data);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const toggleSection = (id: string) => setOpenSection(openSection === id ? null : id);
 
   const animations = [
     { id: "idle", label: "Idle" },
@@ -937,9 +955,22 @@ export default function App() {
     );
   }
 
+  const sidebarButtons = [
+    { id: 'anim', icon: <Clapperboard size={16} />, label: 'Animations', color: 'text-orange-400' },
+    { id: 'parts', icon: <Box size={16} />, label: 'Parts', color: 'text-purple-400' },
+    { id: 'transform', icon: <Move size={16} />, label: 'Transform', color: 'text-blue-400' },
+    { id: 'snap', icon: <Link size={16} />, label: 'Weapon Snap', color: 'text-cyan-400' },
+    { id: 'calib', icon: <Wrench size={16} />, label: 'Calibration', color: 'text-white/60' },
+    { id: 'hand', icon: <Hand size={16} />, label: 'Hand Socket', color: 'text-yellow-500' },
+    { id: 'wepPos', icon: <Target size={16} />, label: 'Weapon Pos', color: 'text-blue-500' },
+    { id: 'wepRot', icon: <RotateCcw size={16} />, label: 'Weapon Rot', color: 'text-red-500' },
+    { id: 'layout', icon: <Save size={16} />, label: 'Layout', color: 'text-green-500' },
+    { id: 'export', icon: <Download size={16} />, label: 'Export', color: 'text-emerald-400' },
+  ];
+
   return (
     <div className="relative w-full h-[100dvh] bg-white text-slate-900 font-sans overflow-hidden">
-      {/* Full-screen 3D Canvas — pointer-events managed so overlays work */}
+      {/* Full-screen 3D Canvas */}
       <div className="absolute inset-0">
         <Canvas shadows dpr={[1, 2]} style={{ touchAction: 'none' }}>
           <color attach="background" args={["#020617"]} />
@@ -961,349 +992,264 @@ export default function App() {
         </Canvas>
       </div>
 
-      {/* Menu open button — only when menu is closed */}
-      {!menuOpen && (
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="absolute top-3 left-3 z-40 w-10 h-10 flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white active:scale-95 transition-all pointer-events-auto"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+      {/* Left action bar */}
+      <div className={`absolute top-0 left-0 bottom-0 z-40 flex flex-col pointer-events-auto transition-all duration-200 ${sidebarOpen ? 'w-[44px]' : 'w-[16px]'}`}>
+        <div className={`h-full flex flex-col bg-[#0a0a18]/90 backdrop-blur-xl border-r border-white/8 ${sidebarOpen ? '' : 'items-center'}`}>
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="w-full flex items-center justify-center py-3 text-white/30 hover:text-white/60 transition-colors"
+          >
+            {sidebarOpen ? <ChevronLeft size={12} /> : <ChevronRight size={10} />}
+          </button>
+
+          {sidebarOpen && (
+            <div className="flex-1 flex flex-col gap-0.5 px-1 overflow-y-auto scrollbar-hide">
+              {sidebarButtons.map(({ id, icon, label, color }) => (
+                <button
+                  key={id}
+                  onClick={() => togglePanel(id)}
+                  title={label}
+                  className={`w-[36px] h-[36px] flex items-center justify-center rounded-lg transition-all ${
+                    openPanels.has(id)
+                      ? 'bg-white/15 ' + color
+                      : 'text-white/30 hover:text-white/60 hover:bg-white/5'
+                  }`}
+                >
+                  {icon}
+                </button>
+              ))}
+
+              <div className="w-6 h-px bg-white/8 mx-auto my-1" />
+
+              {/* Grip system */}
+              <button
+                onClick={() => setView("grip")}
+                title="Grip Mapping"
+                className="w-[36px] h-[36px] flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 transition-all"
+              >
+                <Settings2 size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ---- Floating Panels ---- */}
+
+      {/* Animations Panel */}
+      {openPanels.has('anim') && (
+        <DraggablePanel title="Animations" icon={<Clapperboard size={12} />} onClose={() => closePanel('anim')} defaultPos={{ x: 56, y: 10 }} defaultSize={{ w: 220, h: 280 }} minHeight={100}>
+          <div className="p-2 grid grid-cols-2 gap-1">
+            {animations.map((anim) => (
+              <button
+                key={anim.id}
+                onClick={() => { setAnimation(anim.id); if (anim.id === "shoot") setAccessory("gun"); }}
+                className={`px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                  animation === anim.id ? 'bg-[#fb923c] text-white' : 'text-gray-400 bg-white/5 active:bg-white/10'
+                }`}
+              >
+                {anim.label}
+              </button>
+            ))}
+          </div>
+        </DraggablePanel>
       )}
 
-      {/* Bottom action bar — safe area aware for Safari */}
-      {!menuOpen && (
-        <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto bg-black/70 backdrop-blur-xl border-t border-white/10 safe-bottom">
-          {/* Transform toolbar — when a part is selected */}
-          {selectedMesh && (
-            <div className="flex items-center justify-center gap-2 px-3 pt-2 pb-1">
+      {/* Parts Panel */}
+      {openPanels.has('parts') && (
+        <DraggablePanel title="Parts" icon={<Box size={12} />} onClose={() => closePanel('parts')} defaultPos={{ x: 56, y: 60 }} defaultSize={{ w: 220, h: 260 }}>
+          <div className="p-2 grid grid-cols-2 gap-1">
+            {(() => {
+              const parts: { name: string, obj: THREE.Object3D }[] = [];
+              if (_catGroupRef) {
+                _catGroupRef.traverse((o) => {
+                  if (o.userData?.entity && o.userData?.name) parts.push({ name: o.userData.name, obj: o });
+                });
+              }
+              return parts.map(({ name, obj }) => (
+                <button
+                  key={name}
+                  onClick={() => setSelectedMesh(obj)}
+                  className={`px-2 py-2 rounded-lg text-[9px] uppercase font-bold transition-all truncate ${
+                    selectedMesh === obj ? 'bg-purple-600 text-white' : 'text-gray-400 bg-white/5 active:bg-white/10'
+                  }`}
+                >
+                  {name.replace(/_/g, ' ')}
+                </button>
+              ));
+            })()}
+          </div>
+        </DraggablePanel>
+      )}
+
+      {/* Transform Panel */}
+      {openPanels.has('transform') && (
+        <DraggablePanel title="Transform" icon={<Move size={12} />} onClose={() => closePanel('transform')} defaultPos={{ x: 56, y: 110 }} defaultSize={{ w: 260, h: 200 }} minHeight={80}>
+          <div className="p-2">
+            <div className="flex items-center gap-1 mb-2">
               {([["translate", Move, "Move"], ["rotate", RotateCcw, "Rotate"], ["scale", Maximize, "Scale"]] as const).map(([mode, Icon, label]) => (
                 <button
                   key={mode}
                   onClick={() => setTransformMode(mode)}
                   title={label}
-                  className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
-                    transformMode === mode
-                      ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(59,130,246,0.4)]'
-                      : 'text-white/60 active:bg-white/10'
+                  className={`flex-1 h-9 flex items-center justify-center rounded-lg text-xs transition-all ${
+                    transformMode === mode ? 'bg-blue-600 text-white' : 'text-white/40 bg-white/5 hover:bg-white/10'
                   }`}
                 >
-                  <Icon size={18} />
+                  <Icon size={14} />
                 </button>
               ))}
-              <div className="w-px h-7 bg-white/10 mx-1" />
               <button
                 onClick={() => setSelectionLocked(!selectionLocked)}
-                title={selectionLocked ? "Unlock selection" : "Lock selection"}
-                className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
-                  selectionLocked
-                    ? 'bg-yellow-600 text-white shadow-[0_0_10px_rgba(202,138,4,0.4)]'
-                    : 'text-white/60 active:bg-white/10'
+                title={selectionLocked ? "Unlock" : "Lock"}
+                className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all ${
+                  selectionLocked ? 'bg-yellow-600 text-white' : 'text-white/40 bg-white/5 hover:bg-white/10'
                 }`}
               >
-                {selectionLocked ? <Lock size={18} /> : <Unlock size={18} />}
-              </button>
-              <button
-                onClick={() => { if (selectionLocked) setSelectionLocked(false); setSelectedMesh(null); }}
-                className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-gray-400 active:bg-white/10"
-              >
-                Deselect
-              </button>
-              <button
-                onClick={() => { saveLayout(); setSaved(true); setTimeout(() => setSaved(false), 1500); }}
-                className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase text-green-400 active:bg-white/10 flex items-center gap-1"
-              >
-                <Save size={14} />
-                {saved ? 'Saved!' : 'Save'}
+                {selectionLocked ? <Lock size={14} /> : <Unlock size={14} />}
               </button>
             </div>
-          )}
-
-          {/* Transform sliders — precise control for mobile */}
-          {selectedMesh && (
-            <TransformSliders mesh={selectedMesh} mode={transformMode} />
-          )}
-
-          {/* Animation strip + snap */}
-          <div className="flex items-center gap-2 px-2 pt-1 pb-2">
-            <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide">
-              {animations.map((anim) => (
+            {selectedMesh ? (
+              <>
+                <div className="text-[9px] text-white/30 font-mono mb-2 truncate">
+                  Selected: {selectedMesh.userData?.name || selectedMesh.name || 'unnamed'}
+                </div>
+                <TransformSliders mesh={selectedMesh} mode={transformMode} />
                 <button
-                  key={anim.id}
-                  onClick={() => {
-                    setAnimation(anim.id);
-                    if (anim.id === "shoot") setAccessory("gun");
-                  }}
-                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all whitespace-nowrap ${
-                    animation === anim.id
-                      ? 'bg-[#fb923c] text-white'
-                      : 'text-gray-400 active:bg-white/10'
-                  }`}
+                  onClick={() => { if (selectionLocked) setSelectionLocked(false); setSelectedMesh(null); }}
+                  className="w-full mt-1 py-1.5 rounded-lg text-[9px] font-bold uppercase text-gray-500 bg-white/5 active:bg-white/10"
                 >
-                  {anim.label}
+                  Deselect
                 </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setIsSnapped(!isSnapped)}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${
-                isSnapped
-                  ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.4)]'
-                  : 'text-gray-400 border-white/10 active:bg-white/10'
-              }`}
-            >
-              {isSnapped ? '🔗' : '🔫'}
-            </button>
+              </>
+            ) : (
+              <div className="text-[9px] text-white/20 text-center py-4">Click a part to select it</div>
+            )}
           </div>
-        </div>
+        </DraggablePanel>
       )}
 
-      {/* Slide-out menu panel */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ x: -280 }}
-            animate={{ x: 0 }}
-            exit={{ x: -280 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute top-0 left-0 bottom-0 w-[260px] z-30 bg-black/85 backdrop-blur-xl border-r border-white/10 overflow-y-auto pointer-events-auto"
-          >
-            <div className="px-3 pb-20">
-              {/* Close button */}
-              <div className="flex items-center justify-between py-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Menu</span>
-                <button
-                  onClick={() => setMenuOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white active:scale-95"
-                >
-                  <span className="text-sm font-bold">&times;</span>
-                </button>
-              </div>
+      {/* Weapon Snap Panel */}
+      {openPanels.has('snap') && (
+        <DraggablePanel title="Weapon Snap" icon={<Link size={12} />} onClose={() => closePanel('snap')} defaultPos={{ x: 56, y: 160 }} defaultSize={{ w: 220, h: 100 }} minHeight={80}>
+          <div className="p-2">
+            <button
+              onClick={() => setIsSnapped(!isSnapped)}
+              className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                isSnapped ? 'bg-blue-600 text-white border-blue-400' : 'bg-white/5 text-gray-400 border-white/10 active:bg-white/10'
+              }`}
+            >
+              {isSnapped ? <><Link size={14} /> Snapped</> : <><Unlink size={14} /> Snap Guns</>}
+            </button>
+          </div>
+        </DraggablePanel>
+      )}
 
-              {/* --- Animations Section --- */}
-              <button onClick={() => toggleSection('anim')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Camera className="w-3 h-3 text-orange-400" /> Animations</span>
-                <span className="text-gray-600">{openSection === 'anim' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'anim' && (
-                <div className="px-1 pb-2 grid grid-cols-2 gap-1">
-                  {animations.map((anim) => (
-                    <button
-                      key={anim.id}
-                      onClick={() => {
-                        setAnimation(anim.id);
-                        if (anim.id === "shoot") setAccessory("gun");
-                      }}
-                      className={`px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-all ${
-                        animation === anim.id
-                          ? 'bg-[#fb923c] text-white'
-                          : 'text-gray-400 bg-white/5 active:bg-white/10'
-                      }`}
-                    >
-                      {anim.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* --- Parts List Section --- */}
-              <button onClick={() => toggleSection('parts')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Box className="w-3 h-3 text-purple-400" /> Parts</span>
-                <span className="text-gray-600">{openSection === 'parts' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'parts' && (
-                <div className="px-1 pb-2 grid grid-cols-2 gap-1">
-                  {(() => {
-                    const parts: { name: string, obj: THREE.Object3D }[] = [];
-                    if (_catGroupRef) {
-                      _catGroupRef.traverse((o) => {
-                        if (o.userData?.entity && o.userData?.name) {
-                          parts.push({ name: o.userData.name, obj: o });
-                        }
-                      });
-                    }
-                    return parts.map(({ name, obj }) => (
-                      <button
-                        key={name}
-                        onClick={() => { setSelectedMesh(obj); setMenuOpen(false); }}
-                        className={`px-2 py-2 rounded-lg text-[9px] uppercase font-bold transition-all truncate ${
-                          selectedMesh === obj
-                            ? 'bg-purple-600 text-white'
-                            : 'text-gray-400 bg-white/5 active:bg-white/10'
-                        }`}
-                      >
-                        {name.replace(/_/g, ' ')}
-                      </button>
-                    ));
-                  })()}
-                </div>
-              )}
-
-              {/* --- Weapon Snap Section --- */}
-              <button onClick={() => toggleSection('snap')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Link className="w-3 h-3 text-blue-400" /> Weapon Snap</span>
-                <span className="text-gray-600">{openSection === 'snap' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'snap' && (
-                <div className="px-2 pb-3">
-                  <button
-                    onClick={() => setIsSnapped(!isSnapped)}
-                    className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
-                      isSnapped
-                        ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)]'
-                        : 'bg-white/5 text-gray-400 border-white/10 active:bg-white/10'
-                    }`}
-                  >
-                    {isSnapped ? '🔗 Snapped' : '🔫 Snap Guns'}
-                  </button>
-                </div>
-              )}
-
-              {/* Grip System link */}
-              <button
-                onClick={() => { setView("grip"); setMenuOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-3 mt-2 mb-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-wider active:bg-white/10"
-              >
-                <Settings2 className="w-4 h-4 text-blue-400" />
-                Grip Mapping Demo
-              </button>
-
-              {/* --- Calibration Section --- */}
-              <button onClick={() => toggleSection('calib')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Settings className="w-3 h-3" /> Calibration</span>
-                <span className="text-gray-600">{openSection === 'calib' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'calib' && (
-                <div className="px-2 pb-3 space-y-3">
-                  <div>
-                    <span className="text-[8px] uppercase tracking-widest text-orange-500 font-bold">Arm Rig</span>
-                    <ControlSlider label="Length" value={armLength} min={0.2} max={1.0} step={0.01} onChange={setArmLength} />
-                  </div>
-                  <button
-                    onClick={() => {
-                      setWeaponOffset({ pos: [0.04, 0.11, -0.11], rot: [-93, -4, 79] });
-                      setHandOffset({ pos: [0, -0.18, 0], rot: [0, 0, 0] });
-                      setArmLength(0.34);
-                      setNarutoArmOffset({ pos: [0, 0, 0], rot: [180, 0, 0] });
-                    }}
-                    className="w-full py-2 bg-white/5 text-gray-500 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-white/10"
-                  >
-                    Reset All
-                  </button>
-                </div>
-              )}
-
-              {/* --- Hand Socket Section --- */}
-              <button onClick={() => toggleSection('hand')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Box className="w-3 h-3 text-yellow-500" /> Hand Socket</span>
-                <span className="text-gray-600">{openSection === 'hand' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'hand' && (
-                <div className="px-2 pb-3">
-                  <ControlSlider label="X" value={handOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
-                  <ControlSlider label="Y" value={handOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
-                  <ControlSlider label="Z" value={handOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
-                  <ControlSlider label="Rot X" value={handOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
-                  <ControlSlider label="Rot Y" value={handOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
-                  <ControlSlider label="Rot Z" value={handOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
-                </div>
-              )}
-
-              {/* --- Weapon Position Section --- */}
-              <button onClick={() => toggleSection('wepPos')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Crosshair className="w-3 h-3 text-blue-500" /> Weapon Pos</span>
-                <span className="text-gray-600">{openSection === 'wepPos' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'wepPos' && (
-                <div className="px-2 pb-3">
-                  <ControlSlider label="X" value={weaponOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
-                  <ControlSlider label="Y" value={weaponOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
-                  <ControlSlider label="Z" value={weaponOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
-                </div>
-              )}
-
-              {/* --- Weapon Rotation Section --- */}
-              <button onClick={() => toggleSection('wepRot')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><RotateCcw className="w-3 h-3 text-red-500" /> Weapon Rot</span>
-                <span className="text-gray-600">{openSection === 'wepRot' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'wepRot' && (
-                <div className="px-2 pb-3">
-                  <ControlSlider label="X" value={weaponOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
-                  <ControlSlider label="Y" value={weaponOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
-                  <ControlSlider label="Z" value={weaponOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
-                </div>
-              )}
-
-              {/* --- Naruto Arm Section (only in naruto anim) --- */}
-              {animation === "naruto" && (
-                <>
-                  <button onClick={() => toggleSection('naruto')} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                    <span className="flex items-center gap-2"><User className="w-3 h-3 text-purple-500" /> Naruto Arms</span>
-                    <span className="text-gray-600">{openSection === 'naruto' ? '−' : '+'}</span>
-                  </button>
-                  {openSection === 'naruto' && (
-                    <div className="px-2 pb-3">
-                      <ControlSlider label="X" value={narutoArmOffset.pos[0]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
-                      <ControlSlider label="Y" value={narutoArmOffset.pos[1]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
-                      <ControlSlider label="Z" value={narutoArmOffset.pos[2]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
-                      <ControlSlider label="Rot X" value={narutoArmOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
-                      <ControlSlider label="Rot Y" value={narutoArmOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
-                      <ControlSlider label="Rot Z" value={narutoArmOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* --- Export Section --- */}
-              {/* --- Layout Save/Load Section --- */}
-              <button onClick={() => toggleSection('layout')} className="w-full flex items-center justify-between px-3 py-2 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Save className="w-3 h-3 text-green-500" /> Layout</span>
-                <span className="text-gray-600">{openSection === 'layout' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'layout' && (
-                <div className="px-2 pb-3 flex flex-col gap-1.5">
-                  <button
-                    onClick={() => { saveLayout(); setSaved(true); setTimeout(() => setSaved(false), 1500); }}
-                    className="w-full py-2 bg-green-600/20 text-green-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-green-600/30 flex items-center justify-center gap-2"
-                  >
-                    <Save className="w-3 h-3" />
-                    {saved ? 'Saved!' : 'Save Positions'}
-                  </button>
-                  <button
-                    onClick={() => { loadLayout(); }}
-                    className="w-full py-2 bg-blue-600/20 text-blue-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-blue-600/30 flex items-center justify-center gap-2"
-                  >
-                    <RotateCw className="w-3 h-3" />
-                    Load Saved
-                  </button>
-                  <button
-                    onClick={() => { localStorage.removeItem(SAVE_KEY); window.location.reload(); }}
-                    className="w-full py-2 bg-red-600/20 text-red-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-red-600/30 flex items-center justify-center gap-2"
-                  >
-                    Reset to Default
-                  </button>
-                </div>
-              )}
-
-              <button onClick={() => toggleSection('export')} className="w-full flex items-center justify-between px-3 py-2 mt-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5">
-                <span className="flex items-center gap-2"><Copy className="w-3 h-3 text-green-500" /> Export Data</span>
-                <span className="text-gray-600">{openSection === 'export' ? '−' : '+'}</span>
-              </button>
-              {openSection === 'export' && (
-                <div className="px-2 pb-3">
-                  <button
-                    onClick={copyToClipboard}
-                    className="w-full py-2 bg-white/5 text-gray-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-white/10 flex items-center justify-center gap-2"
-                  >
-                    {copied ? <><Check className="w-3 h-3 text-green-400" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Config JSON</>}
-                  </button>
-                </div>
-              )}
+      {/* Calibration Panel */}
+      {openPanels.has('calib') && (
+        <DraggablePanel title="Calibration" icon={<Wrench size={12} />} onClose={() => closePanel('calib')} defaultPos={{ x: 290, y: 10 }} defaultSize={{ w: 260, h: 200 }}>
+          <div className="p-2 space-y-3">
+            <div>
+              <span className="text-[8px] uppercase tracking-widest text-orange-500 font-bold">Arm Rig</span>
+              <ControlSlider label="Length" value={armLength} min={0.2} max={1.0} step={0.01} onChange={setArmLength} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <button
+              onClick={() => { setWeaponOffset({ pos: [0.04, 0.11, -0.11], rot: [-93, -4, 79] }); setHandOffset({ pos: [0, -0.18, 0], rot: [0, 0, 0] }); setArmLength(0.34); setNarutoArmOffset({ pos: [0, 0, 0], rot: [180, 0, 0] }); }}
+              className="w-full py-2 bg-white/5 text-gray-500 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-white/10"
+            >
+              Reset All
+            </button>
+            {animation === "naruto" && (
+              <div>
+                <span className="text-[8px] uppercase tracking-widest text-purple-500 font-bold">Naruto Arms</span>
+                <ControlSlider label="X" value={narutoArmOffset.pos[0]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
+                <ControlSlider label="Y" value={narutoArmOffset.pos[1]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
+                <ControlSlider label="Z" value={narutoArmOffset.pos[2]} min={-1} max={1} step={0.01} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
+                <ControlSlider label="Rot X" value={narutoArmOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
+                <ControlSlider label="Rot Y" value={narutoArmOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
+                <ControlSlider label="Rot Z" value={narutoArmOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setNarutoArmOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
+              </div>
+            )}
+          </div>
+        </DraggablePanel>
+      )}
+
+      {/* Hand Socket Panel */}
+      {openPanels.has('hand') && (
+        <DraggablePanel title="Hand Socket" icon={<Hand size={12} />} onClose={() => closePanel('hand')} defaultPos={{ x: 290, y: 60 }} defaultSize={{ w: 260, h: 260 }}>
+          <div className="p-2">
+            <ControlSlider label="X" value={handOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
+            <ControlSlider label="Y" value={handOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
+            <ControlSlider label="Z" value={handOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setHandOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
+            <ControlSlider label="Rot X" value={handOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
+            <ControlSlider label="Rot Y" value={handOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
+            <ControlSlider label="Rot Z" value={handOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setHandOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
+          </div>
+        </DraggablePanel>
+      )}
+
+      {/* Weapon Pos Panel */}
+      {openPanels.has('wepPos') && (
+        <DraggablePanel title="Weapon Pos" icon={<Target size={12} />} onClose={() => closePanel('wepPos')} defaultPos={{ x: 290, y: 110 }} defaultSize={{ w: 260, h: 160 }}>
+          <div className="p-2">
+            <ControlSlider label="X" value={weaponOffset.pos[0]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [v, prev.pos[1], prev.pos[2]] }))} />
+            <ControlSlider label="Y" value={weaponOffset.pos[1]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], v, prev.pos[2]] }))} />
+            <ControlSlider label="Z" value={weaponOffset.pos[2]} min={-0.5} max={0.5} step={0.01} onChange={(v) => setWeaponOffset(prev => ({ ...prev, pos: [prev.pos[0], prev.pos[1], v] }))} />
+          </div>
+        </DraggablePanel>
+      )}
+
+      {/* Weapon Rot Panel */}
+      {openPanels.has('wepRot') && (
+        <DraggablePanel title="Weapon Rot" icon={<RotateCcw size={12} />} onClose={() => closePanel('wepRot')} defaultPos={{ x: 290, y: 160 }} defaultSize={{ w: 260, h: 160 }}>
+          <div className="p-2">
+            <ControlSlider label="X" value={weaponOffset.rot[0]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [v, prev.rot[1], prev.rot[2]] }))} />
+            <ControlSlider label="Y" value={weaponOffset.rot[1]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], v, prev.rot[2]] }))} />
+            <ControlSlider label="Z" value={weaponOffset.rot[2]} min={-180} max={180} step={1} onChange={(v) => setWeaponOffset(prev => ({ ...prev, rot: [prev.rot[0], prev.rot[1], v] }))} />
+          </div>
+        </DraggablePanel>
+      )}
+
+      {/* Layout Panel */}
+      {openPanels.has('layout') && (
+        <DraggablePanel title="Layout" icon={<Save size={12} />} onClose={() => closePanel('layout')} defaultPos={{ x: 56, y: 300 }} defaultSize={{ w: 220, h: 170 }}>
+          <div className="p-2 flex flex-col gap-1.5">
+            <button
+              onClick={() => { saveLayout(); setSaved(true); setTimeout(() => setSaved(false), 1500); }}
+              className="w-full py-2 bg-green-600/20 text-green-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-green-600/30 flex items-center justify-center gap-2"
+            >
+              <Save className="w-3 h-3" /> {saved ? 'Saved!' : 'Save Positions'}
+            </button>
+            <button
+              onClick={() => { loadLayout(); }}
+              className="w-full py-2 bg-blue-600/20 text-blue-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-blue-600/30 flex items-center justify-center gap-2"
+            >
+              <RotateCw className="w-3 h-3" /> Load Saved
+            </button>
+            <button
+              onClick={() => { localStorage.removeItem(SAVE_KEY); window.location.reload(); }}
+              className="w-full py-2 bg-red-600/20 text-red-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-red-600/30 flex items-center justify-center gap-2"
+            >
+              Reset to Default
+            </button>
+          </div>
+        </DraggablePanel>
+      )}
+
+      {/* Export Panel */}
+      {openPanels.has('export') && (
+        <DraggablePanel title="Export" icon={<Download size={12} />} onClose={() => closePanel('export')} defaultPos={{ x: 56, y: 350 }} defaultSize={{ w: 220, h: 100 }} minHeight={80}>
+          <div className="p-2">
+            <button
+              onClick={copyToClipboard}
+              className="w-full py-2 bg-white/5 text-gray-400 text-[9px] font-bold uppercase tracking-widest rounded-lg active:bg-white/10 flex items-center justify-center gap-2"
+            >
+              {copied ? <><Check className="w-3 h-3 text-green-400" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Config JSON</>}
+            </button>
+          </div>
+        </DraggablePanel>
+      )}
     </div>
   );
 }
